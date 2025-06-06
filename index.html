@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
   <meta charset="UTF-8">
-  <title>Billedekonvertering til WebP</title>
+  <title>WebP Billedekonvertering</title>
   <style>
     body {
       background-color: #121212;
@@ -12,8 +12,20 @@
       padding: 2em;
     }
 
-    input[type="file"] {
-      margin: 1em 0;
+    #dropZone {
+      border: 2px dashed #555;
+      border-radius: 10px;
+      padding: 2em;
+      margin: 1em auto;
+      width: 90%;
+      max-width: 500px;
+      background-color: #1e1e1e;
+      cursor: pointer;
+    }
+
+    #dropZone.hover {
+      border-color: #00bfff;
+      background-color: #2a2a2a;
     }
 
     .preview {
@@ -44,62 +56,112 @@
   </style>
 </head>
 <body>
-  <h1>Konverter billeder til 1280x1280 WebP</h1>
-  <p>Upload billeder nedenfor – de konverteres automatisk med hvid baggrund</p>
+  <h1>Billedkonvertering til WebP (1280x1280)</h1>
+  <p>Træk og slip billeder nedenfor, eller klik for at vælge</p>
 
-  <input type="file" id="imageInput" multiple accept="image/*">
+  <div id="dropZone">Slip billeder her eller klik for at vælge</div>
+  <input type="file" id="imageInput" multiple accept="image/*" style="display: none;">
+
   <div class="preview" id="previewContainer"></div>
+  <button id="downloadAllBtn" style="display:none;">Download alle som ZIP</button>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
+    const dropZone = document.getElementById('dropZone');
     const input = document.getElementById('imageInput');
     const preview = document.getElementById('previewContainer');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
 
-    input.addEventListener('change', async (event) => {
-      const files = event.target.files;
-      preview.innerHTML = ''; // ryd preview
+    let convertedImages = [];
+
+    dropZone.addEventListener('click', () => input.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('hover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    input.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    async function handleFiles(files) {
+      preview.innerHTML = '';
+      convertedImages = [];
 
       for (const file of files) {
         const img = new Image();
         img.src = URL.createObjectURL(file);
 
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+        await new Promise(resolve => {
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const SIZE = 1280;
+            canvas.width = SIZE;
+            canvas.height = SIZE;
 
-          const SIZE = 1280;
-          canvas.width = SIZE;
-          canvas.height = SIZE;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, SIZE, SIZE);
 
-          // hvid baggrund
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, SIZE, SIZE);
+            let scale = Math.min(SIZE / img.width, SIZE / img.height);
+            let newWidth = img.width * scale;
+            let newHeight = img.height * scale;
+            let offsetX = (SIZE - newWidth) / 2;
+            let offsetY = (SIZE - newHeight) / 2;
 
-          // beregn skalering og centrering
-          let scale = Math.min(SIZE / img.width, SIZE / img.height);
-          let newWidth = img.width * scale;
-          let newHeight = img.height * scale;
-          let offsetX = (SIZE - newWidth) / 2;
-          let offsetY = (SIZE - newHeight) / 2;
+            ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
 
-          ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+            // Til download
+            canvas.toBlob(blob => {
+              convertedImages.push({ name: file.name.replace(/\.[^/.]+$/, '') + '.webp', blob });
 
-          // vis resultat
-          const canvasContainer = document.createElement('div');
-          canvasContainer.appendChild(canvas);
+              const canvasContainer = document.createElement('div');
+              canvasContainer.appendChild(canvas);
 
-          const downloadBtn = document.createElement('button');
-          downloadBtn.textContent = 'Download .webp';
-          downloadBtn.onclick = () => {
-            const link = document.createElement('a');
-            link.download = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-            link.href = canvas.toDataURL('image/webp');
-            link.click();
+              const downloadBtn = document.createElement('button');
+              downloadBtn.textContent = 'Download .webp';
+              downloadBtn.onclick = () => {
+                const link = document.createElement('a');
+                link.download = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+              };
+
+              canvasContainer.appendChild(downloadBtn);
+              preview.appendChild(canvasContainer);
+            }, 'image/webp');
+
+            resolve();
           };
-
-          canvasContainer.appendChild(downloadBtn);
-          preview.appendChild(canvasContainer);
-        };
+        });
       }
+
+      if (convertedImages.length > 0) {
+        downloadAllBtn.style.display = 'inline-block';
+      }
+    }
+
+    downloadAllBtn.addEventListener('click', async () => {
+      const zip = new JSZip();
+
+      convertedImages.forEach(img => {
+        zip.file(img.name, img.blob);
+      });
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = 'billeder.zip';
+      link.click();
     });
   </script>
 </body>
