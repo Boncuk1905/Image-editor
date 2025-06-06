@@ -8,8 +8,16 @@
       background-color: #121212;
       color: #f0f0f0;
       font-family: Arial, sans-serif;
-      text-align: center;
       padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1, p {
+      text-align: center;
+      width: 100%;
+      max-width: 700px;
     }
 
     #dropZone {
@@ -21,6 +29,7 @@
       max-width: 500px;
       background-color: #1e1e1e;
       cursor: pointer;
+      text-align: center;
     }
 
     #dropZone.hover {
@@ -28,12 +37,22 @@
       background-color: #2a2a2a;
     }
 
-    .preview {
+    #container {
+      display: flex;
+      gap: 2em;
       margin-top: 2em;
+      width: 90%;
+      max-width: 900px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .preview {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 1em;
+      max-width: 350px;
     }
 
     .item {
@@ -45,6 +64,14 @@
       align-items: center;
       width: 160px;
       box-sizing: border-box;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .item:hover {
+      background-color: #333;
+    }
+    .item.selected {
+      border: 2px solid #00bfff;
     }
 
     .thumbnail {
@@ -56,6 +83,32 @@
       border: 1px solid #333;
     }
 
+    #largePreview {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 1em;
+      width: 400px;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    #largePreview img {
+      max-width: 100%;
+      max-height: 350px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #333;
+      object-fit: contain;
+    }
+
+    #largePreview p {
+      margin-top: 1em;
+      color: #bbb;
+    }
+
     button {
       margin-top: 1em;
       padding: 8px 12px;
@@ -65,6 +118,8 @@
       cursor: pointer;
       border-radius: 4px;
       width: 100%;
+      box-sizing: border-box;
+      font-size: 1em;
     }
 
     button:hover {
@@ -87,7 +142,14 @@
   <div id="dropZone">Slip billeder her eller klik</div>
   <input type="file" id="imageInput" multiple accept="image/*" style="display: none;" />
 
-  <div class="preview" id="previewContainer"></div>
+  <div id="container">
+    <div class="preview" id="previewContainer" aria-label="Billed thumbnails"></div>
+
+    <div id="largePreview" aria-label="Større billede forhåndsvisning">
+      <p>Klik på et billede for at se en større forhåndsvisning her.</p>
+    </div>
+  </div>
+
   <button id="downloadAllBtn" style="display: none;">Download alle som ZIP</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -95,6 +157,7 @@
     const dropZone = document.getElementById('dropZone');
     const input = document.getElementById('imageInput');
     const preview = document.getElementById('previewContainer');
+    const largePreview = document.getElementById('largePreview');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
     let convertedImages = [];
 
@@ -117,6 +180,7 @@
 
     async function handleFiles(files) {
       preview.innerHTML = '';
+      largePreview.innerHTML = '<p>Klik på et billede for at se en større forhåndsvisning her.</p>';
       convertedImages = [];
 
       for (const file of files) {
@@ -146,7 +210,7 @@
 
             canvas.toBlob(blob => {
               const fileName = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-              convertedImages.push({ name: fileName, blob });
+              convertedImages.push({ name: fileName, blob, originalImg: img });
 
               // Lav thumbnail preview (brug et mindre canvas)
               const thumbCanvas = document.createElement('canvas');
@@ -174,19 +238,54 @@
               const thumbnailImg = document.createElement('img');
               thumbnailImg.className = 'thumbnail';
               thumbnailImg.src = thumbCanvas.toDataURL('image/webp');
+              thumbnailImg.alt = file.name;
 
-              const btn = document.createElement('button');
-              btn.textContent = 'Download .webp';
-              btn.onclick = () => {
-                const a = document.createElement('a');
-                a.download = fileName;
-                a.href = URL.createObjectURL(blob);
-                a.click();
+              // Når man klikker på thumbnail, opdater store preview
+              item.onclick = () => {
+                document.querySelectorAll('.item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+
+                // Fjern evt. tidligere preview
+                largePreview.innerHTML = '';
+
+                // Lav et større canvas til preview
+                const previewCanvas = document.createElement('canvas');
+                const pCtx = previewCanvas.getContext('2d');
+                const PREVIEW_SIZE = 400;
+                previewCanvas.width = PREVIEW_SIZE;
+                previewCanvas.height = PREVIEW_SIZE;
+
+                // Hvid baggrund
+                pCtx.fillStyle = '#ffffff';
+                pCtx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+
+                // Bevar proportioner
+                const pRatio = Math.min(PREVIEW_SIZE / img.width, PREVIEW_SIZE / img.height, 1);
+                const pWidth = img.width * pRatio;
+                const pHeight = img.height * pRatio;
+                const pOffsetX = (PREVIEW_SIZE - pWidth) / 2;
+                const pOffsetY = (PREVIEW_SIZE - pHeight) / 2;
+
+                pCtx.drawImage(img, pOffsetX, pOffsetY, pWidth, pHeight);
+
+                largePreview.appendChild(previewCanvas);
+
+                // Download knap til det valgte billede
+                const btn = document.createElement('button');
+                btn.textContent = 'Download .webp';
+                btn.onclick = (e) => {
+                  e.stopPropagation();
+                  const imgData = convertedImages.find(ci => ci.name === fileName);
+                  if (!imgData) return;
+                  const a = document.createElement('a');
+                  a.download = imgData.name;
+                  a.href = URL.createObjectURL(imgData.blob);
+                  a.click();
+                };
+                largePreview.appendChild(btn);
               };
 
               item.appendChild(thumbnailImg);
-              item.appendChild(btn);
-
               preview.appendChild(item);
 
               resolve();
