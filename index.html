@@ -5,53 +5,66 @@
   <title>WebP Billedekonvertering</title>
   <style>
     body {
-      background-color: #121212;
-      color: #f0f0f0;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 2em;
-    }
+  background-color: #121212;
+  color: #f0f0f0;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 2em;
+}
 
-    #dropZone {
-      border: 2px dashed #555;
-      border-radius: 10px;
-      padding: 2em;
-      margin: 1em auto;
-      width: 90%;
-      max-width: 500px;
-      background-color: #1e1e1e;
-      cursor: pointer;
-    }
+#dropZone {
+  border: 2px dashed #555;
+  border-radius: 10px;
+  padding: 2em;
+  margin: 1em auto;
+  width: 90%;
+  max-width: 500px;
+  background-color: #1e1e1e;
+  cursor: pointer;
+}
 
-    #dropZone.hover {
-      border-color: #00bfff;
-      background-color: #2a2a2a;
-    }
+#dropZone.hover {
+  border-color: #00bfff;
+  background-color: #2a2a2a;
+}
 
-    .preview {
-      margin-top: 2em;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1em;
-    }
+.preview {
+  margin-top: 2em;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1em;
+}
 
-    canvas {
-      border: 1px solid #333;
-      background-color: white;
-    }
+.canvas-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1em;
+}
 
-    button {
-      margin-top: 1em;
-      padding: 10px 20px;
-      background-color: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+canvas {
+  border: 1px solid #333;
+  background-color: white;
+  max-width: 200px;
+  height: auto;
+}
 
-    button:hover {
-      background-color: #555;
+button {
+  margin-top: 1em;
+  padding: 10px 20px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #555;
+}
+
     }
   </style>
 </head>
@@ -112,13 +125,14 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, SIZE, SIZE);
 
-            let scale = Math.min(SIZE / img.width, SIZE / img.height);
-            let newWidth = img.width * scale;
-            let newHeight = img.height * scale;
-            let offsetX = (SIZE - newWidth) / 2;
-            let offsetY = (SIZE - newHeight) / 2;
+            const ratio = Math.min(SIZE / img.width, SIZE / img.height, 1);
+const newWidth = img.width * ratio;
+const newHeight = img.height * ratio;
+const offsetX = (SIZE - newWidth) / 2;
+const offsetY = (SIZE - newHeight) / 2;
 
-            ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+
 
             // Til download
             canvas.toBlob(blob => {
