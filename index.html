@@ -1,82 +1,80 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>WebP Billedekonvertering</title>
   <style>
     body {
-  background-color: #121212;
-  color: #f0f0f0;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  padding: 2em;
-}
+      background-color: #121212;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 2em;
+    }
 
-#dropZone {
-  border: 2px dashed #555;
-  border-radius: 10px;
-  padding: 2em;
-  margin: 1em auto;
-  width: 90%;
-  max-width: 500px;
-  background-color: #1e1e1e;
-  cursor: pointer;
-}
+    #dropZone {
+      border: 2px dashed #555;
+      border-radius: 10px;
+      padding: 2em;
+      margin: 1em auto;
+      width: 90%;
+      max-width: 500px;
+      background-color: #1e1e1e;
+      cursor: pointer;
+    }
 
-#dropZone.hover {
-  border-color: #00bfff;
-  background-color: #2a2a2a;
-}
+    #dropZone.hover {
+      border-color: #00bfff;
+      background-color: #2a2a2a;
+    }
 
-.preview {
-  margin-top: 2em;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1em;
-}
+    .preview {
+      margin-top: 2em;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1em;
+    }
 
-.canvas-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #1a1a1a;
-  border-radius: 8px;
-  padding: 1em;
-}
+    .canvas-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 1em;
+    }
 
-canvas {
-  border: 1px solid #333;
-  background-color: white;
-  max-width: 200px;
-  height: auto;
-}
+    canvas {
+      border: 1px solid #333;
+      background-color: white;
+      max-width: 200px;
+      height: auto;
+    }
 
-button {
-  margin-top: 1em;
-  padding: 10px 20px;
-  background-color: #333;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
+    button {
+      margin-top: 1em;
+      padding: 10px 20px;
+      background-color: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
 
-button:hover {
-  background-color: #555;
-}
-
+    button:hover {
+      background-color: #555;
     }
   </style>
 </head>
 <body>
   <h1>Billedkonvertering til WebP (1280x1280)</h1>
-  <p>Træk og slip billeder nedenfor, eller klik for at vælge</p>
+  <p>Træk og slip billeder herunder eller klik for at vælge</p>
 
-  <div id="dropZone">Slip billeder her eller klik for at vælge</div>
-  <input type="file" id="imageInput" multiple accept="image/*" style="display: none;">
+  <div id="dropZone">Slip billeder her eller klik</div>
+  <input type="file" id="imageInput" multiple accept="image/*" style="display: none;" />
 
   <div class="preview" id="previewContainer"></div>
-  <button id="downloadAllBtn" style="display:none;">Download alle som ZIP</button>
+  <button id="downloadAllBtn" style="display: none;">Download alle som ZIP</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
@@ -84,7 +82,6 @@ button:hover {
     const input = document.getElementById('imageInput');
     const preview = document.getElementById('previewContainer');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
-
     let convertedImages = [];
 
     dropZone.addEventListener('click', () => input.click());
@@ -102,9 +99,7 @@ button:hover {
       handleFiles(e.dataTransfer.files);
     });
 
-    input.addEventListener('change', (e) => {
-      handleFiles(e.target.files);
-    });
+    input.addEventListener('change', (e) => handleFiles(e.target.files));
 
     async function handleFiles(files) {
       preview.innerHTML = '';
@@ -116,42 +111,43 @@ button:hover {
 
         await new Promise(resolve => {
           img.onload = () => {
+            const SIZE = 1280;
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const SIZE = 1280;
             canvas.width = SIZE;
             canvas.height = SIZE;
 
+            // Hvid baggrund
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, SIZE, SIZE);
 
+            // Bevar størrelsesforhold, ingen opskalering
             const ratio = Math.min(SIZE / img.width, SIZE / img.height, 1);
-const newWidth = img.width * ratio;
-const newHeight = img.height * ratio;
-const offsetX = (SIZE - newWidth) / 2;
-const offsetY = (SIZE - newHeight) / 2;
+            const newWidth = img.width * ratio;
+            const newHeight = img.height * ratio;
+            const offsetX = (SIZE - newWidth) / 2;
+            const offsetY = (SIZE - newHeight) / 2;
 
-ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+            ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
 
-
-            // Til download
             canvas.toBlob(blob => {
               convertedImages.push({ name: file.name.replace(/\.[^/.]+$/, '') + '.webp', blob });
 
-              const canvasContainer = document.createElement('div');
-              canvasContainer.appendChild(canvas);
+              const container = document.createElement('div');
+              container.className = 'canvas-box';
+              container.appendChild(canvas);
 
-              const downloadBtn = document.createElement('button');
-              downloadBtn.textContent = 'Download .webp';
-              downloadBtn.onclick = () => {
-                const link = document.createElement('a');
-                link.download = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-                link.href = URL.createObjectURL(blob);
-                link.click();
+              const btn = document.createElement('button');
+              btn.textContent = 'Download .webp';
+              btn.onclick = () => {
+                const a = document.createElement('a');
+                a.download = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+                a.href = URL.createObjectURL(blob);
+                a.click();
               };
 
-              canvasContainer.appendChild(downloadBtn);
-              preview.appendChild(canvasContainer);
+              container.appendChild(btn);
+              preview.appendChild(container);
             }, 'image/webp');
 
             resolve();
@@ -166,16 +162,13 @@ ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
 
     downloadAllBtn.addEventListener('click', async () => {
       const zip = new JSZip();
-
-      convertedImages.forEach(img => {
-        zip.file(img.name, img.blob);
-      });
-
+      convertedImages.forEach(img => zip.file(img.name, img.blob));
       const content = await zip.generateAsync({ type: 'blob' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(content);
-      link.download = 'billeder.zip';
-      link.click();
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = 'billeder.zip';
+      a.click();
     });
   </script>
 </body>
