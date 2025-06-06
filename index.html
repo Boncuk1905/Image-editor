@@ -2,76 +2,107 @@
 <html lang="da">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WebP Billedekonvertering</title>
+  <!-- Google Font: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
+    /* Grundlæggende reset og font */
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background-color: #121212;
-      color: #f0f0f0;
-      font-family: Arial, sans-serif;
-      padding: 2em;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #121212 0%, #1b1b1b 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 2rem 1rem;
+      user-select: none;
     }
 
-    h1, p {
+    h1 {
+      font-weight: 600;
+      margin-bottom: 0.3rem;
       text-align: center;
-      width: 100%;
-      max-width: 700px;
+      letter-spacing: 0.05em;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-weight: 400;
+      font-size: 1rem;
+      text-align: center;
+      color: #bbbbbb;
+      max-width: 600px;
+      line-height: 1.4;
     }
 
     #dropZone {
-      border: 2px dashed #555;
-      border-radius: 10px;
-      padding: 2em;
-      margin: 1em auto;
-      width: 90%;
-      max-width: 500px;
-      background-color: #1e1e1e;
-      cursor: pointer;
+      background-color: #222;
+      border: 2px dashed #444;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      padding: 2.5rem 1rem;
+      color: #bbb;
+      font-size: 1.2rem;
       text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      user-select: none;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
     }
-
     #dropZone.hover {
+      background-color: #333;
       border-color: #00bfff;
-      background-color: #2a2a2a;
+      color: #00bfff;
+      box-shadow: 0 0 15px #00bfff;
     }
 
     #container {
+      margin-top: 2rem;
       display: flex;
-      gap: 2em;
-      margin-top: 2em;
-      width: 90%;
-      max-width: 900px;
       justify-content: center;
+      gap: 2rem;
       flex-wrap: wrap;
+      width: 100%;
+      max-width: 950px;
     }
 
     .preview {
       display: flex;
       flex-wrap: wrap;
+      gap: 1rem;
+      max-width: 380px;
       justify-content: flex-start;
-      gap: 1em;
-      max-width: 350px;
     }
 
     .item {
-      background: #1a1a1a;
-      border-radius: 8px;
-      padding: 1em;
+      background-color: #1f1f1f;
+      border-radius: 14px;
+      padding: 1rem;
+      width: 160px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 160px;
-      box-sizing: border-box;
-      cursor: pointer;
-      transition: background-color 0.3s;
+      user-select: none;
     }
     .item:hover {
-      background-color: #333;
+      transform: translateY(-6px);
+      box-shadow: 0 6px 15px #00bfff;
     }
     .item.selected {
       border: 2px solid #00bfff;
+      box-shadow: 0 6px 15px #00bfff;
+      transform: translateY(-6px);
     }
 
     .thumbnail {
@@ -79,68 +110,94 @@
       height: 150px;
       object-fit: contain;
       background: white;
-      border-radius: 4px;
+      border-radius: 10px;
       border: 1px solid #333;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+      user-select: none;
     }
 
     #largePreview {
-      background: #1a1a1a;
-      border-radius: 10px;
-      padding: 1em;
-      width: 400px;
-      min-height: 400px;
+      background-color: #1f1f1f;
+      border-radius: 18px;
+      padding: 1.5rem;
+      width: 420px;
+      min-height: 430px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-sizing: border-box;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      user-select: none;
     }
 
-    #largePreview img {
+    #largePreview img, #largePreview canvas {
       max-width: 100%;
-      max-height: 350px;
+      max-height: 370px;
       background: white;
-      border-radius: 8px;
+      border-radius: 12px;
       border: 1px solid #333;
       object-fit: contain;
+      user-select: none;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
     }
 
     #largePreview p {
-      margin-top: 1em;
-      color: #bbb;
+      margin-top: 1.2rem;
+      color: #999;
+      font-size: 0.95rem;
+      user-select: none;
+      text-align: center;
+      line-height: 1.3;
     }
 
     button {
-      margin-top: 1em;
-      padding: 8px 12px;
-      background-color: #333;
-      color: white;
+      margin-top: 1.3rem;
+      padding: 12px 20px;
+      background-color: #00bfff;
       border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      color: #121212;
+      font-size: 1.1rem;
       cursor: pointer;
-      border-radius: 4px;
+      box-shadow: 0 4px 10px #00bfffaa;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
       width: 100%;
-      box-sizing: border-box;
-      font-size: 1em;
     }
-
     button:hover {
-      background-color: #555;
+      background-color: #0099cc;
+      box-shadow: 0 6px 14px #0099cccc;
     }
 
     #downloadAllBtn {
-      margin-top: 2em;
-      padding: 12px 24px;
-      font-size: 1.1em;
-      border-radius: 6px;
+      margin: 3rem auto 1rem;
       width: auto;
+      max-width: 240px;
+      display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 880px) {
+      #container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .preview, #largePreview {
+        max-width: 100%;
+        width: 90vw;
+      }
+      #largePreview {
+        min-height: 360px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Billedkonvertering til WebP (1280x1280)</h1>
-  <p>Træk og slip billeder herunder eller klik for at vælge</p>
+  <h1>WebP Billedekonvertering</h1>
+  <p>Træk og slip billeder herunder eller klik for at vælge filer</p>
 
-  <div id="dropZone">Slip billeder her eller klik</div>
-  <input type="file" id="imageInput" multiple accept="image/*" style="display: none;" />
+  <div id="dropZone" tabindex="0" aria-label="Træk og slip billeder her eller klik for at vælge filer">Slip billeder her eller klik</div>
+  <input type="file" id="imageInput" multiple accept="image/*" style="display:none" />
 
   <div id="container">
     <div class="preview" id="previewContainer" aria-label="Billed thumbnails"></div>
@@ -150,7 +207,7 @@
     </div>
   </div>
 
-  <button id="downloadAllBtn" style="display: none;">Download alle som ZIP</button>
+  <button id="downloadAllBtn">Download alle som ZIP</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
@@ -162,20 +219,23 @@
     let convertedImages = [];
 
     dropZone.addEventListener('click', () => input.click());
+    dropZone.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        input.click();
+      }
+    });
 
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
       dropZone.classList.add('hover');
     });
-
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
-
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('hover');
       handleFiles(e.dataTransfer.files);
     });
-
     input.addEventListener('change', (e) => handleFiles(e.target.files));
 
     async function handleFiles(files) {
@@ -195,11 +255,9 @@
             canvas.width = SIZE;
             canvas.height = SIZE;
 
-            // Hvid baggrund
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, SIZE, SIZE);
 
-            // Bevar størrelsesforhold, ingen opskalering
             const ratio = Math.min(SIZE / img.width, SIZE / img.height, 1);
             const newWidth = img.width * ratio;
             const newHeight = img.height * ratio;
@@ -212,18 +270,15 @@
               const fileName = file.name.replace(/\.[^/.]+$/, '') + '.webp';
               convertedImages.push({ name: fileName, blob, originalImg: img });
 
-              // Lav thumbnail preview (brug et mindre canvas)
               const thumbCanvas = document.createElement('canvas');
               const tCtx = thumbCanvas.getContext('2d');
               const THUMB_SIZE = 150;
               thumbCanvas.width = THUMB_SIZE;
               thumbCanvas.height = THUMB_SIZE;
 
-              // Hvid baggrund i thumbnail
               tCtx.fillStyle = '#ffffff';
               tCtx.fillRect(0, 0, THUMB_SIZE, THUMB_SIZE);
 
-              // Beregn thumbnail størrelse og centrer
               const thumbRatio = Math.min(THUMB_SIZE / img.width, THUMB_SIZE / img.height, 1);
               const thumbWidth = img.width * thumbRatio;
               const thumbHeight = img.height * thumbRatio;
@@ -240,26 +295,21 @@
               thumbnailImg.src = thumbCanvas.toDataURL('image/webp');
               thumbnailImg.alt = file.name;
 
-              // Når man klikker på thumbnail, opdater store preview
               item.onclick = () => {
                 document.querySelectorAll('.item').forEach(el => el.classList.remove('selected'));
                 item.classList.add('selected');
 
-                // Fjern evt. tidligere preview
                 largePreview.innerHTML = '';
 
-                // Lav et større canvas til preview
                 const previewCanvas = document.createElement('canvas');
                 const pCtx = previewCanvas.getContext('2d');
                 const PREVIEW_SIZE = 400;
                 previewCanvas.width = PREVIEW_SIZE;
                 previewCanvas.height = PREVIEW_SIZE;
 
-                // Hvid baggrund
                 pCtx.fillStyle = '#ffffff';
                 pCtx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
 
-                // Bevar proportioner
                 const pRatio = Math.min(PREVIEW_SIZE / img.width, PREVIEW_SIZE / img.height, 1);
                 const pWidth = img.width * pRatio;
                 const pHeight = img.height * pRatio;
@@ -270,7 +320,6 @@
 
                 largePreview.appendChild(previewCanvas);
 
-                // Download knap til det valgte billede
                 const btn = document.createElement('button');
                 btn.textContent = 'Download .webp';
                 btn.onclick = (e) => {
@@ -298,13 +347,17 @@
     }
 
     downloadAllBtn.addEventListener('click', async () => {
-      const zip = new JSZip();
-      convertedImages.forEach(img => zip.file(img.name, img.blob));
-      const content = await zip.generateAsync({ type: 'blob' });
+      if (convertedImages.length === 0) return;
 
+      const zip = new JSZip();
+      convertedImages.forEach(({name, blob}) => {
+        zip.file(name, blob);
+      });
+
+      const content = await zip.generateAsync({type:"blob"});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(content);
-      a.download = 'billeder.zip';
+      a.download = 'converted_images.zip';
       a.click();
     });
   </script>
