@@ -97,8 +97,16 @@
   </div>
 
   <div class="setting">
+    <label for="fitMode">Tilpas billede:</label>
+    <select id="fitMode">
+      <option value="contain">Indsæt (med baggrund)</option>
+      <option value="cover">Fyld ud (beskær)</option>
+    </select>
+  </div>
+
+  <div class="setting">
     <label for="upload">Upload billede(r):</label>
-    <input type="file" id="upload" multiple accept="image/*" onchange="handleFiles(this.files)" />
+    <input type="file" id="upload" multiple accept="image/*" />
   </div>
 
   <div id="preview"></div>
@@ -107,87 +115,119 @@
 
   <script>
     const imageBlobs = [];
+    const originalImages = [];
 
-    const savedSettings = {
-      width: sessionStorage.getItem("width") || "1280",
-      height: sessionStorage.getItem("height") || "1280",
-      format: sessionStorage.getItem("format") || "webp",
-      bgcolor: sessionStorage.getItem("bgcolor") || "white",
-    };
-
-    document.getElementById("width").value = savedSettings.width;
-    document.getElementById("height").value = savedSettings.height;
-    document.getElementById("format").value = savedSettings.format;
-    document.getElementById("bgcolor").value = savedSettings.bgcolor;
-
-    const updateSession = () => {
+    function saveSettings() {
       sessionStorage.setItem("width", document.getElementById("width").value);
       sessionStorage.setItem("height", document.getElementById("height").value);
       sessionStorage.setItem("format", document.getElementById("format").value);
       sessionStorage.setItem("bgcolor", document.getElementById("bgcolor").value);
-    };
+      sessionStorage.setItem("fitMode", document.getElementById("fitMode").value);
+    }
 
-    document.querySelectorAll("input, select").forEach(el => el.addEventListener("change", updateSession));
+    function loadSettings() {
+      document.getElementById("width").value = sessionStorage.getItem("width") || "1280";
+      document.getElementById("height").value = sessionStorage.getItem("height") || "1280";
+      document.getElementById("format").value = sessionStorage.getItem("format") || "webp";
+      document.getElementById("bgcolor").value = sessionStorage.getItem("bgcolor") || "white";
+      document.getElementById("fitMode").value = sessionStorage.getItem("fitMode") || "contain";
+    }
 
-    function handleFiles(files) {
-      const preview = document.getElementById("preview");
-      preview.innerHTML = "";
-      imageBlobs.length = 0; // nulstil tidligere konverteringer
+    loadSettings();
 
+    document.querySelectorAll("input, select").forEach(el =>
+      el.addEventListener("change", () => {
+        saveSettings();
+        if (originalImages.length > 0) {
+          processImages();
+        }
+      })
+    );
+
+    document.getElementById("upload").addEventListener("change", (e) => {
+      originalImages.length = 0;
+      imageBlobs.length = 0;
+
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = new Image();
+          img.onload = function () {
+            originalImages.push({ file, img });
+            if (originalImages.length === e.target.files.length) {
+              processImages();
+            }
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function processImages() {
       const width = parseInt(document.getElementById("width").value);
       const height = parseInt(document.getElementById("height").value);
       const format = document.getElementById("format").value;
       const bgcolor = document.getElementById("bgcolor").value;
+      const fitMode = document.getElementById("fitMode").value;
 
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const img = new Image();
-          img.onload = function () {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+      const preview = document.getElementById("preview");
+      preview.innerHTML = "";
+      imageBlobs.length = 0;
 
-            const scale = Math.min(width / img.width, height / img.height, 1);
-            const newWidth = img.width * scale;
-            const newHeight = img.height * scale;
+      originalImages.forEach(({ file, img }) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = width;
+        canvas.height = height;
 
-            canvas.width = width;
-            canvas.height = height;
+        if (bgcolor === "transparent") {
+          ctx.clearRect(0, 0, width, height);
+        } else {
+          ctx.fillStyle = bgcolor;
+          ctx.fillRect(0, 0, width, height);
+        }
 
-            if (bgcolor === "transparent") {
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-            } else {
-              ctx.fillStyle = bgcolor;
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
+        let drawWidth, drawHeight;
+        let offsetX = 0, offsetY = 0;
 
-            ctx.drawImage(img, (width - newWidth) / 2, (height - newHeight) / 2, newWidth, newHeight);
+        if (fitMode === "contain") {
+          const scale = Math.min(width / img.width, height / img.height, 1);
+          drawWidth = img.width * scale;
+          drawHeight = img.height * scale;
+          offsetX = (width - drawWidth) / 2;
+          offsetY = (height - drawHeight) / 2;
+        } else if (fitMode === "cover") {
+          const scale = Math.max(width / img.width, height / img.height);
+          drawWidth = img.width * scale;
+          drawHeight = img.height * scale;
+          offsetX = (width - drawWidth) / 2;
+          offsetY = (height - drawHeight) / 2;
+        }
 
-            canvas.toBlob(blob => {
-              const url = URL.createObjectURL(blob);
-              const name = file.name.replace(/\.[^/.]+$/, "") + "." + format;
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-              imageBlobs.push({ blob, name });
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const name = file.name.replace(/\.[^/.]+$/, "") + "." + format;
 
-              const container = document.createElement("div");
-              container.className = "thumb";
+          imageBlobs.push({ blob, name });
 
-              const imagePreview = new Image();
-              imagePreview.src = url;
+          const container = document.createElement("div");
+          container.className = "thumb";
 
-              const download = document.createElement("a");
-              download.href = url;
-              download.download = name;
-              download.textContent = "⬇️ Download";
+          const imagePreview = new Image();
+          imagePreview.src = url;
 
-              container.appendChild(imagePreview);
-              container.appendChild(download);
-              preview.appendChild(container);
-            }, `image/${format}`);
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+          const download = document.createElement("a");
+          download.href = url;
+          download.download = name;
+          download.textContent = "⬇️ Download";
+
+          container.appendChild(imagePreview);
+          container.appendChild(download);
+          preview.appendChild(container);
+        }, `image/${format}`);
       });
     }
 
@@ -197,7 +237,7 @@
         return;
       }
 
-      imageBlobs.forEach((item, index) => {
+      imageBlobs.forEach(item => {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(item.blob);
         link.download = item.name;
