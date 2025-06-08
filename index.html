@@ -214,19 +214,25 @@
           imageBlobs.push({ blob, name });
 
           const container = document.createElement("div");
-          container.className = "thumb";
+container.className = "thumb";
 
-          const imagePreview = new Image();
-          imagePreview.src = url;
+const imagePreview = new Image();
+imagePreview.src = url;
 
-          const download = document.createElement("a");
-          download.href = url;
-          download.download = name;
-          download.textContent = "⬇️ Download";
+const infoText = document.createElement("p");
+infoText.textContent = `Størrelse: ${canvas.width}×${canvas.height} px`;
+infoText.style.fontSize = "0.85rem";
+infoText.style.margin = "0.5rem 0";
 
-          container.appendChild(imagePreview);
-          container.appendChild(download);
-          preview.appendChild(container);
+const download = document.createElement("a");
+download.href = url;
+download.download = name;
+download.textContent = "⬇️ Download";
+
+container.appendChild(imagePreview);
+container.appendChild(infoText);
+container.appendChild(download);
+preview.appendChild(container);
         }, `image/${format}`);
       });
     }
